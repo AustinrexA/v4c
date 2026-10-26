@@ -31,8 +31,29 @@ jobs:
       NEON_USER: ${{ secrets.NEON_USER }}
       NEON_PASSWORD: ${{ secrets.NEON_PASSWORD }}
       NEON_SSLMODE: require
+      
       APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+
+      # Actor IDs — configure these GitHub secrets for the portals you use
+      APIFY_ACTOR_FOUNDIT: ${{ secrets.APIFY_ACTOR_FOUNDIT }}
+      APIFY_ACTOR_GLASSDOOR: ${{ secrets.APIFY_ACTOR_GLASSDOOR }}
+      APIFY_ACTOR_INDEED: ${{ secrets.APIFY_ACTOR_INDEED }}
+      APIFY_ACTOR_INTERNSHALA: ${{ secrets.APIFY_ACTOR_INTERNSHALA }}
+      APIFY_ACTOR_NAUKRI: ${{ secrets.APIFY_ACTOR_NAUKRI }}
+      APIFY_ACTOR_TIMESJOBS: ${{ secrets.APIFY_ACTOR_TIMESJOBS }}
+      APIFY_ACTOR_WELLFOUND: ${{ secrets.APIFY_ACTOR_WELLFOUND }}
+
+      # Explicit approval flags — set to true only for reviewed Actors
+      APIFY_ACCESS_APPROVED_FOUNDIT: ${{ secrets.APIFY_ACCESS_APPROVED_FOUNDIT }}
+      APIFY_ACCESS_APPROVED_GLASSDOOR: ${{ secrets.APIFY_ACCESS_APPROVED_GLASSDOOR }}
+      APIFY_ACCESS_APPROVED_INDEED: ${{ secrets.APIFY_ACCESS_APPROVED_INDEED }}
+      APIFY_ACCESS_APPROVED_INTERNSHALA: ${{ secrets.APIFY_ACCESS_APPROVED_INTERNSHALA }}
+      APIFY_ACCESS_APPROVED_NAUKRI: ${{ secrets.APIFY_ACCESS_APPROVED_NAUKRI }}
+      APIFY_ACCESS_APPROVED_TIMESJOBS: ${{ secrets.APIFY_ACCESS_APPROVED_TIMESJOBS }}
+      APIFY_ACCESS_APPROVED_WELLFOUND: ${{ secrets.APIFY_ACCESS_APPROVED_WELLFOUND }}
+
       PYTHONUNBUFFERED: "1"
+
 
     steps:
       - name: Checkout repository
