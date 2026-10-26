@@ -62,17 +62,62 @@ def _serialized_skills(job):
     return json.dumps(skills) if isinstance(skills, (list, dict)) else skills
 
 
+
 def update_existing_job(cursor, job_id, job):
-    cursor.execute("""UPDATE jobs SET external_id = COALESCE(%s, external_id), title = %s, company = %s,
-        location = %s, experience = %s, salary_min = COALESCE(%s, salary_min), salary_max = COALESCE(%s, salary_max),
-        salary_currency = CASE WHEN %s IS NOT NULL OR %s IS NOT NULL THEN %s ELSE salary_currency END,
-        salary_period = CASE WHEN %s IS NOT NULL OR %s IS NOT NULL THEN %s ELSE salary_period END,
-        skills = %s, description = %s, job_url = %s, posted_at = COALESCE(%s, posted_at), status = %s,
-        last_seen_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = %s""",
-        (job.get("external_id"), job["title"], job.get("company"), job.get("location"), job.get("experience"),
-         job.get("salary_min"), job.get("salary_max"), job.get("salary_min"), job.get("salary_max"),
-         job.get("salary_currency", "INR"), job.get("salary_min"), job.get("salary_max"), job.get("salary_period", "year"),
-         _serialized_skills(job), job.get("description"), job["job_url"], job.get("posted_at"), job.get("status", "unknown"), job_id))
+    """Update an existing job using PostgreSQL- and MySQL-compatible SQL."""
+    has_salary = (
+        job.get("salary_min") is not None
+        or job.get("salary_max") is not None
+    )
+
+    cursor.execute(
+        """
+        UPDATE jobs SET
+            external_id = COALESCE(%s, external_id),
+            title = %s,
+            company = %s,
+            location = %s,
+            experience = %s,
+            salary_min = COALESCE(%s, salary_min),
+            salary_max = COALESCE(%s, salary_max),
+            salary_currency = CASE
+                WHEN %s::boolean THEN %s
+                ELSE salary_currency
+            END,
+            salary_period = CASE
+                WHEN %s::boolean THEN %s
+                ELSE salary_period
+            END,
+            skills = %s,
+            description = %s,
+            job_url = %s,
+            posted_at = COALESCE(%s, posted_at),
+            status = %s,
+            last_seen_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+        """,
+        (
+            job.get("external_id"),
+            job["title"],
+            job.get("company"),
+            job.get("location"),
+            job.get("experience"),
+            job.get("salary_min"),
+            job.get("salary_max"),
+            has_salary,
+            job.get("salary_currency", "INR"),
+            has_salary,
+            job.get("salary_period", "year"),
+            _serialized_skills(job),
+            job.get("description"),
+            job["job_url"],
+            job.get("posted_at"),
+            job.get("status", "unknown"),
+            job_id,
+        ),
+    )
+
 
 
 def upsert_job(cursor, source_id, job, naukri_source_ids=None):
