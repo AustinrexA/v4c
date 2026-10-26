@@ -1,8 +1,9 @@
-name: V4Career Daily Free Company Scrape
+
+name: V4Career Daily Job Scraping
 
 on:
   schedule:
-    # 01:30 UTC = 07:00 India Standard Time (IST)
+    # Daily at 7:00 AM IST (01:30 UTC)
     - cron: "30 1 * * *"
   workflow_dispatch:
 
@@ -10,13 +11,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: v4career-daily-scrape
+  group: v4career-daily-scraping
   cancel-in-progress: false
 
 jobs:
-  scrape-official-company-careers:
+  scrape:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     defaults:
       run:
         working-directory: ./V4Career
@@ -29,10 +31,11 @@ jobs:
       NEON_USER: ${{ secrets.NEON_USER }}
       NEON_PASSWORD: ${{ secrets.NEON_PASSWORD }}
       NEON_SSLMODE: require
+      APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
       PYTHONUNBUFFERED: "1"
 
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -42,24 +45,53 @@ jobs:
           cache: pip
           cache-dependency-path: V4Career/requirements.txt
 
-      - name: Install project dependencies
-        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Validate Neon configuration
+      - name: Validate database secrets
         shell: bash
         run: |
           set -euo pipefail
           for key in NEON_HOST NEON_PORT NEON_DB NEON_USER NEON_PASSWORD; do
             if [ -z "${!key:-}" ]; then
-              echo "::error::Missing GitHub Actions secret for $key"
+              echo "::error::Missing GitHub secret: $key"
               exit 1
             fi
           done
 
+      - name: Scrape configured job portals
+        id: portals
+        continue-on-error: true
+        run: |
+          python scripts/run_configured_sources.py \
+            --keyword "Software Engineer" \
+            --location India \
+            --max-results 10
+
       - name: Scrape official company career pages
-        run: >-
-          python scripts/run_company_careers_structured_batch.py
-          --max-results 10
-          --max-pages 10
-          --timeout 10
-          --workers 2
+        id: companies
+        continue-on-error: true
+        run: |
+          python scripts/run_company_careers_structured_batch.py \
+            --max-results 10 \
+            --max-pages 10 \
+            --timeout 10 \
+            --workers 2
+
+      - name: Report collection status
+        if: always()
+        env:
+          PORTAL_RESULT: ${{ steps.portals.outcome }}
+          COMPANY_RESULT: ${{ steps.companies.outcome }}
+        shell: bash
+        run: |
+          echo "Job portal scraping: ${PORTAL_RESULT:-not run}"
+          echo "Company career scraping: ${COMPANY_RESULT:-not run}"
+
+          if [[ "$PORTAL_RESULT" != "success" ||
+                "$COMPANY_RESULT" != "success" ]]; then
+            echo "::error::One or more scraping stages failed. Review their logs."
+            exit 1
+          fi
